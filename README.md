@@ -1,99 +1,49 @@
 # GrantPlatform
-A transparent, secure, and scalable web platform connecting financially vulnerable tertiary students with educational grant sponsors, streamlining applications, eligibility assessment, disbursement tracking, and academic progress monitoring.
-# GrantPlatform
 
 **Empowering Education Through Transparent Funding**
 
-GrantPlatform is a web-based higher-education grant management platform designed to connect financially vulnerable tertiary students with philanthropic sponsors and streamline the management of educational financial assistance.
+HCM Foundation's higher-education grant management platform for financially vulnerable tertiary students.
 
-Developed as part of the **HCM Foundation Software Development Fellowship Capstone Project**, the platform aims to improve transparency, accountability, accessibility, and efficiency in educational grant administration.
+## Status
+Repository preparation. The Laravel application has not been generated or tested yet. Features below describe the intended platform, not implemented functionality.
 
-## Problem Statement
+## Confirmed stack
+Laravel, Inertia.js, React, MySQL, Tailwind CSS, shadcn/ui, and Spatie Laravel Permission. TypeScript is recommended for React. Exact package versions must match the HCM development environment.
 
-Many financially vulnerable students face difficulties accessing educational grants and scholarships due to fragmented application processes, limited funding visibility, inconsistent eligibility assessment, and inadequate progress monitoring.
+One Laravel repository will contain backend routes, business actions, React pages, migrations and tests.
 
-GrantPlatform addresses these challenges through a centralized digital platform for students, sponsors, and administrators.
+## Roles
+| Role | Responsibility |
+|---|---|
+| Student | Submit applications and evidence; view own awards; submit semester results |
+| Donor | Define own fund criteria; monitor contributions and anonymous beneficiary progress |
+| Admin | Verify applicants and donors, match beneficiaries, assign awards, record payments, verify results |
+| Super Admin | Manage Admin access and oversee reports/audit history; no application approval or payment authority |
 
-## Project Objectives
+There is no institution portal. Donors never receive student identities, including in exports.
 
-- Simplify educational grant discovery and application.
-- Provide structured, transparent eligibility assessment.
-- Enable sponsors to define grant criteria and academic progression expectations.
-- Support administrative review and grant award management.
-- Track grant disbursements and receipt confirmations.
-- Monitor beneficiaries' academic performance and continued eligibility.
-- Improve accountability through dashboards and audit records.
-
-## Core Features
-
-### Student Portal
-- Student registration and profile management.
-- Grant discovery and applications.
-- Supporting document submission.
-- Application status tracking.
-- Grant award and academic progression information.
-
-### Sponsor Dashboard
-- Grant programme creation and management.
-- Eligibility criteria configuration.
-- Award and beneficiary monitoring.
-- Disbursement and academic performance reporting.
-
-### Administrator Dashboard
-- Application review and eligibility assessment.
-- Award approval and management.
-- Grant disbursement record management.
-- Payment evidence and confirmation tracking.
-- Reporting and audit history.
-
-### Grant Assessment
-The planned eligibility scoring framework uses:
-
-| Assessment Criterion | Weight |
-|---|---:|
-| Household income | 30% |
-| Education costs | 25% |
-| Existing financial support | 15% |
-| Number of dependants | 10% |
-| Combined vulnerability circumstances | 10% |
-| Risk of discontinuing education | 10% |
-| **Total** | **100%** |
-
-## Disbursement Management
-
-Phase 1 is designed around external bank transfers rather than an integrated payment gateway.
-
-Disbursement records will follow the workflow:
-
-**Scheduled → Released → Confirmed**
-
-The system will maintain transaction records, supporting evidence, confirmation information, and a transparent administrative ledger.
-
-## Technology Stack
-
-The final implementation stack will be documented once approved by the development team.
-
-## Security Principles
-
-- Role-based access control.
-- Secure authentication and authorization.
-- Validation of submitted data and uploaded documents.
-- Protection of student personal and financial information.
-- Audit logs for sensitive administrative operations.
-- Secure management of credentials and application secrets.
-
-## Project Status
-
-**Status:** Planning and initial development.
-
-## Project Team
-
-HCM Foundation — Software Development Fellowship Capstone Team.
+## Accepted operating rules
+- Need score: income 30, education costs 25, existing support 15, dependants 10, combined circumstances 10, discontinuation risk 10.
+- Orphan status is Yes/No. Combined circumstances earn at most 10 points.
+- The 35-point cutoff and High 60–100 / Moderate 35–59 / Low below 35 categories remain provisional demo settings.
+- Admins verify inputs; missing evidence stays pending.
+- External scholarship recipients may qualify for verified unmet costs. One active platform award per student.
+- Donors transfer externally to HCM. Admins verify incoming receipts before money becomes available.
+- Admins pay institutions/suppliers externally on students' behalf. No direct student payments.
+- Outgoing workflow: Scheduled → Released → Confirmed. Confirmation requires payee acknowledgement recorded by Admin.
+- Release reduces cash and unpaid commitment once. Confirmation never deducts again.
+- Students submit semester evidence and structured academic values. Only Admin-verified results affect benchmarks.
+- New entrants can use admission evidence for funds explicitly allowing applicants without CGPA.
 
 ## Documentation
+- [Local setup guide](docs/SETUP.md)
+- [Architecture and implementation plan](docs/ARCHITECTURE.md)
+- [Database schema](docs/database/HCM_Grant_Platform.dbml)
+- [Database design notes](docs/database/README.md)
 
-Requirements, database design, API specifications, and system architecture will be maintained in the `docs/` directory.
+## Security
+Enforce role permissions and record ownership in Laravel. Keep uploads private. Maintain append-only audit and financial histories. Never commit real student information, credentials, bank details, or uploaded evidence.
 
-## License
-
-Licensing and intellectual property arrangements are pending confirmation with the project team and HCM Foundation.
+## Team and licensing
+HCM Foundation — Software Development Fellowship Capstone Team.
+Project licensing and intellectual property arrangements remain pending. Preserve third-party license notices when adding the starter kit and dependencies.
