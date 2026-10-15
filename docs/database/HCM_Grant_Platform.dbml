@@ -1,0 +1,931 @@
+// HCM Group D | Grant Management | Schema v0.1
+// Based on MySQL Schema and ERD v0.1 (14 October 2026).
+// Design for review, not production migrations. Money is NGN kobo; dates are UTC.
+// Financial operations require Laravel transactions and consistent row locks.
+// Unresolved: refunds, suspended reservations, evidence policy, criteria changes.
+// Spatie polymorphic model_id links intentionally have no users FK.
+// Framework auth/session/queue/cache tables: use installed Laravel migrations.
+Project hcm_grant_management {
+  database_type: 'MySQL'
+  Note: 'Admin-managed awards; external transfers; no student payees. Cash = SUM(cash_delta); reserved = SUM(reserved_delta); available = cash - reserved. Confirmation does not debit cash.'
+}
+
+Table users {
+  id "bigint unsigned" [pk, increment]
+  name varchar(160) [not null]
+  email varchar(254) [not null, unique]
+  password varchar(255) [not null]
+  account_status varchar(24) [not null, default: 'active']
+  email_verified_at datetime(6) [null]
+  disabled_at datetime(6) [null]
+  row_version "int unsigned" [not null, default: 1]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  Note: 'Account statuses active/disabled. Fortify remember token and encrypted MFA fields follow installed starter-kit migrations. No role column; use Spatie.'
+}
+
+Table institutions {
+  id "bigint unsigned" [pk, increment]
+  name varchar(180) [not null]
+  code varchar(40) [not null, unique]
+  state_name varchar(80) [not null]
+  default_scale decimal(5,2) [not null]
+  active boolean [not null, default: true]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+}
+
+Table programmes {
+  id "bigint unsigned" [pk, increment]
+  institution_id "bigint unsigned" [not null]
+  name varchar(180) [not null]
+  department varchar(180) [not null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (institution_id, name) [unique]
+  }
+}
+
+Table local_governments {
+  id "bigint unsigned" [pk, increment]
+  state_name varchar(80) [not null]
+  name varchar(100) [not null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (state_name, name) [unique]
+  }
+}
+
+Table academic_periods {
+  id "bigint unsigned" [pk, increment]
+  institution_id "bigint unsigned" [not null]
+  session_label varchar(24) [not null]
+  semester "int unsigned" [not null]
+  results_due_at datetime(6) [null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (institution_id, session_label, semester) [unique]
+  }
+}
+
+Table student_profiles {
+  id "bigint unsigned" [pk, increment]
+  user_id "bigint unsigned" [not null, unique]
+  institution_id "bigint unsigned" [null]
+  programme_id "bigint unsigned" [null]
+  matric_number varchar(80) [null]
+  level "int unsigned" [null]
+  origin_lga_id "bigint unsigned" [null]
+  phone varchar(32) [null]
+  enrolment_status varchar(24) [not null, default: 'pending']
+  row_version "int unsigned" [not null, default: 1]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (institution_id, matric_number) [unique]
+  }
+  Note: 'Enrolment: pending, active, deferred, withdrawn, suspended, completed. Validate programme belongs to institution.'
+}
+
+Table donor_profiles {
+  id "bigint unsigned" [pk, increment]
+  user_id "bigint unsigned" [not null, unique]
+  display_name varchar(180) [not null]
+  approval_status varchar(24) [not null, default: 'pending']
+  reviewed_by "bigint unsigned" [null]
+  reviewed_at datetime(6) [null]
+  review_reason text [null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  Note: 'Approval: pending, approved, declined. Admin approval required.'
+}
+
+Table roles {
+  id "bigint unsigned" [pk, increment]
+  name varchar(125) [not null]
+  guard_name varchar(125) [not null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (name, guard_name) [unique]
+  }
+  Note: 'Illustrative no-teams package shape; installed Spatie migration is authoritative. Guard web.'
+}
+
+Table permissions {
+  id "bigint unsigned" [pk, increment]
+  name varchar(125) [not null]
+  guard_name varchar(125) [not null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (name, guard_name) [unique]
+  }
+  Note: 'Illustrative no-teams package shape; installed Spatie migration is authoritative. Guard web.'
+}
+
+Table model_has_roles {
+  role_id "bigint unsigned" [not null]
+  model_type varchar(125) [not null]
+  model_id "bigint unsigned" [not null]
+  indexes {
+    (role_id, model_id, model_type) [pk]
+    (model_id, model_type)
+  }
+  Note: 'Polymorphic model_id: logical User reference, not a physical FK. Package owns table; installed migration is authoritative.'
+}
+
+Table model_has_permissions {
+  permission_id "bigint unsigned" [not null]
+  model_type varchar(125) [not null]
+  model_id "bigint unsigned" [not null]
+  indexes {
+    (permission_id, model_id, model_type) [pk]
+    (model_id, model_type)
+  }
+  Note: 'Polymorphic model_id: logical User reference, not a physical FK. Package owns table; installed migration is authoritative.'
+}
+
+Table role_has_permissions {
+  permission_id "bigint unsigned" [not null]
+  role_id "bigint unsigned" [not null]
+  indexes {
+    (permission_id, role_id) [pk]
+  }
+  Note: 'Package-owned pivot; installed migration is authoritative.'
+}
+
+Table applications {
+  id "bigint unsigned" [pk, increment]
+  student_id "bigint unsigned" [not null]
+  status varchar(24) [not null, default: 'draft']
+  public_reference char(26) [not null, unique]
+  row_version "int unsigned" [not null, default: 1]
+  submitted_at datetime(6) [null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (status, submitted_at, id)
+    (student_id, created_at)
+  }
+  Note: 'Statuses: draft, submitted, under_review, needs_information, approved, declined. Approval belongs to a reviewed version.'
+}
+
+Table application_drafts {
+  application_id "bigint unsigned" [not null, pk]
+  payload json [not null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+}
+
+Table application_versions {
+  id "bigint unsigned" [pk, increment]
+  application_id "bigint unsigned" [not null]
+  version_no "int unsigned" [not null]
+  programme_id "bigint unsigned" [not null]
+  matric_number varchar(80) [null]
+  level "int unsigned" [not null]
+  origin_lga_id "bigint unsigned" [not null]
+  enrolment_status varchar(24) [not null]
+  monthly_income "bigint unsigned" [null]
+  tuition "bigint unsigned" [null]
+  prior_arrears "bigint unsigned" [null]
+  education_period_id "bigint unsigned" [not null]
+  external_aid boolean [null]
+  external_aid_amount "bigint unsigned" [null]
+  dependants "int unsigned" [null]
+  is_orphan boolean [null]
+  single_parent boolean [null]
+  disability boolean [null]
+  result_availability varchar(24) [not null]
+  declared_at datetime(6) [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (application_id, version_no) [unique]
+  }
+  Note: 'Immutable submitted snapshot. Unknown values remain NULL. Orphan is Yes/No. Result availability: available/not_yet_available.'
+}
+
+Table application_reviews {
+  id "bigint unsigned" [pk, increment]
+  application_version_id "bigint unsigned" [not null]
+  reviewer_id "bigint unsigned" [not null]
+  outcome varchar(24) [not null]
+  reason text [not null]
+  created_at datetime(6) [not null]
+  Note: 'Outcome approved/declined/needs_information. Admin only.'
+}
+
+Table case_assignments {
+  id "bigint unsigned" [pk, increment]
+  application_id "bigint unsigned" [not null]
+  admin_id "bigint unsigned" [not null]
+  assigned_by "bigint unsigned" [not null]
+  started_at datetime(6) [not null]
+  ended_at datetime(6) [null]
+  reason text [not null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (application_id, ended_at)
+  }
+  Note: 'Lock application to enforce one current assignment.'
+}
+
+Table scoring_policies {
+  id "bigint unsigned" [pk, increment]
+  version varchar(40) [not null, unique]
+  status varchar(24) [not null]
+  rules json [not null]
+  effective_at datetime(6) [null]
+  created_by "bigint unsigned" [not null]
+  minimum_score "int unsigned" [not null]
+  high_minimum "int unsigned" [not null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  Note: 'Immutable when published. Weights 30/25/15/10/10/10. Demo cutoffs 35 and 60 require validation.'
+}
+
+Table need_assessments {
+  id "bigint unsigned" [pk, increment]
+  application_version_id "bigint unsigned" [not null]
+  policy_id "bigint unsigned" [not null]
+  assessor_id "bigint unsigned" [not null]
+  status varchar(24) [not null]
+  assessed_at datetime(6) [null]
+  verified_inputs json [not null]
+  verification_map json [not null]
+  risk_level varchar(16) [null]
+  risk_reason text [null]
+  income_points "int unsigned" [null]
+  costs_points "int unsigned" [null]
+  support_points "int unsigned" [null]
+  dependant_points "int unsigned" [null]
+  circumstance_points "int unsigned" [null]
+  risk_points "int unsigned" [null]
+  total_score "int unsigned" [null]
+  category varchar(16) [null]
+  verified_unmet_cost "bigint unsigned" [null]
+  funding_gap_note text [null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  Note: 'Pending/complete. Finalized rows immutable. Complete requires verified inputs and component total; combined circumstances capped at 10.'
+}
+
+Table funds {
+  id "bigint unsigned" [pk, increment]
+  donor_id "bigint unsigned" [not null]
+  name varchar(180) [not null]
+  currency char(3) [not null, default: 'NGN']
+  status varchar(24) [not null]
+  intended_amount "bigint unsigned" [null]
+  criteria_locked_at datetime(6) [null]
+  row_version "int unsigned" [not null, default: 1]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (donor_id, status)
+  }
+  Note: 'Draft/open/paused/closed. NGN only proposed. Lock anchor for financial commands; intended amount is not cash.'
+}
+
+Table fund_rule_versions {
+  id "bigint unsigned" [pk, increment]
+  fund_id "bigint unsigned" [not null]
+  version_no "int unsigned" [not null]
+  created_by "bigint unsigned" [not null]
+  min_need_score "int unsigned" [null]
+  need_category varchar(16) [null]
+  min_cgpa_percent decimal(7,4) [null]
+  allows_no_cgpa boolean [not null, default: false]
+  progression_percent decimal(7,4) [not null]
+  min_credits decimal(7,2) [null]
+  automatic_suspension boolean [not null, default: false]
+  effective_at datetime(6) [not null]
+  evidence_policy_version varchar(40) [not null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (fund_id, version_no) [unique]
+  }
+  Note: 'Immutable after publication. Percentages 0–100. Pin version on match; criteria lock on first release.'
+}
+
+Table rule_institutions {
+  rule_id "bigint unsigned" [not null]
+  institution_id "bigint unsigned" [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (rule_id, institution_id) [pk]
+  }
+  Note: 'No rows: unrestricted dimension. Values within dimension are alternatives; dimensions combined with AND. Category semantics require approval.'
+}
+
+Table rule_programmes {
+  rule_id "bigint unsigned" [not null]
+  programme_id "bigint unsigned" [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (rule_id, programme_id) [pk]
+  }
+  Note: 'No rows: unrestricted dimension. Values within dimension are alternatives; dimensions combined with AND. Category semantics require approval.'
+}
+
+Table rule_levels {
+  rule_id "bigint unsigned" [not null]
+  level "int unsigned" [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (rule_id, level) [pk]
+  }
+  Note: 'No rows: unrestricted dimension. Values within dimension are alternatives; dimensions combined with AND. Category semantics require approval.'
+}
+
+Table rule_origin_lgas {
+  rule_id "bigint unsigned" [not null]
+  lga_id "bigint unsigned" [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (rule_id, lga_id) [pk]
+  }
+  Note: 'No rows: unrestricted dimension. Values within dimension are alternatives; dimensions combined with AND. Category semantics require approval.'
+}
+
+Table rule_categories {
+  rule_id "bigint unsigned" [not null]
+  category varchar(32) [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (rule_id, category) [pk]
+  }
+  Note: 'No rows: unrestricted dimension. Values within dimension are alternatives; dimensions combined with AND. Category semantics require approval.'
+}
+
+Table academic_records {
+  id "bigint unsigned" [pk, increment]
+  student_id "bigint unsigned" [not null]
+  period_id "bigint unsigned" [not null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (student_id, period_id) [unique]
+  }
+}
+
+Table academic_versions {
+  id "bigint unsigned" [pk, increment]
+  academic_record_id "bigint unsigned" [not null]
+  version_no "int unsigned" [not null]
+  gpa decimal(5,2) [not null]
+  cgpa decimal(5,2) [not null]
+  grading_scale decimal(5,2) [not null]
+  registered_credits decimal(7,2) [not null]
+  passed_credits decimal(7,2) [not null]
+  status varchar(24) [not null]
+  submitted_by "bigint unsigned" [not null]
+  submitted_at datetime(6) [not null]
+  verified_by "bigint unsigned" [null]
+  verified_at datetime(6) [null]
+  review_reason text [null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (academic_record_id, version_no) [unique]
+  }
+  Note: 'Submitted/verified/rejected. Final decisions immutable; corrections create new version. 0 <= GPA,CGPA <= positive scale; 0 <= passed <= registered credits.'
+}
+
+Table match_evaluations {
+  id "bigint unsigned" [pk, increment]
+  application_version_id "bigint unsigned" [not null]
+  assessment_id "bigint unsigned" [not null]
+  rule_id "bigint unsigned" [not null]
+  academic_version_id "bigint unsigned" [null]
+  eligible boolean [not null]
+  checks json [not null]
+  evaluated_by "bigint unsigned" [not null]
+  evaluated_at datetime(6) [not null]
+  created_at datetime(6) [not null]
+  Note: 'Validate all linked student/application identities. NULL academic version only for approved no-CGPA pathway.'
+}
+
+Table awards {
+  id "bigint unsigned" [pk, increment]
+  student_id "bigint unsigned" [not null]
+  fund_id "bigint unsigned" [not null]
+  match_id "bigint unsigned" [not null]
+  amount "bigint unsigned" [not null]
+  currency char(3) [not null]
+  status varchar(24) [not null]
+  support_types json [not null]
+  decision_reason text [not null]
+  awarded_by "bigint unsigned" [not null]
+  awarded_at datetime(6) [not null]
+  closed_at datetime(6) [null]
+  row_version "int unsigned" [not null, default: 1]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (student_id, status)
+    (fund_id, status)
+    (id, student_id) [unique]
+  }
+  Note: 'Active/suspended/terminated/completed. Admin-owned; amount > 0, within verified gap and available funds. Reserve atomically.'
+}
+
+Table active_award_slots {
+  student_id "bigint unsigned" [not null, pk]
+  award_id "bigint unsigned" [not null, unique]
+  created_at datetime(6) [not null]
+  Note: 'One active award per student. Proposed: suspended retains slot and reservation. Closure removes slot transactionally.'
+}
+
+Table award_decisions {
+  id "bigint unsigned" [pk, increment]
+  award_id "bigint unsigned" [not null]
+  actor_id "bigint unsigned" [not null]
+  from_status varchar(24) [null]
+  to_status varchar(24) [not null]
+  action varchar(24) [not null]
+  reason text [not null]
+  created_at datetime(6) [not null]
+}
+
+Table contributions {
+  id "bigint unsigned" [pk, increment]
+  fund_id "bigint unsigned" [not null]
+  amount "bigint unsigned" [not null]
+  currency char(3) [not null]
+  status varchar(24) [not null, default: 'pending']
+  transfer_reference varchar(160) [null]
+  reported_by "bigint unsigned" [not null]
+  verified_by "bigint unsigned" [null]
+  received_at datetime(6) [null]
+  verified_at datetime(6) [null]
+  reason text [null]
+  row_version "int unsigned" [not null, default: 1]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (fund_id, status)
+    transfer_reference
+  }
+  Note: 'Pending/received/rejected. Amount > 0. Received only after Admin verifies bank receipt and evidence.'
+}
+
+Table payees {
+  id "bigint unsigned" [pk, increment]
+  kind varchar(16) [not null]
+  name varchar(180) [not null]
+  institution_id "bigint unsigned" [null]
+  payment_details text [not null]
+  verification_status varchar(24) [not null]
+  verified_by "bigint unsigned" [null]
+  verified_at datetime(6) [null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  Note: 'Kind institution/supplier only; institution requires institution_id. Encrypt payment_details. No student payees.'
+}
+
+Table disbursements {
+  id "bigint unsigned" [pk, increment]
+  award_id "bigint unsigned" [not null]
+  payee_id "bigint unsigned" [not null]
+  amount "bigint unsigned" [not null]
+  status varchar(24) [not null, default: 'scheduled']
+  purpose varchar(255) [not null]
+  scheduled_for date [null]
+  transfer_reference varchar(160) [null]
+  payee_snapshot text [null]
+  recorded_by "bigint unsigned" [not null]
+  released_by "bigint unsigned" [null]
+  confirmed_by "bigint unsigned" [null]
+  released_at datetime(6) [null]
+  confirmed_at datetime(6) [null]
+  cancel_reason text [null]
+  row_version "int unsigned" [not null, default: 1]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (award_id, status)
+    (status, scheduled_for)
+    transfer_reference
+  }
+  Note: 'Scheduled/held/released/confirmed/cancelled. Positive amount. Encrypt payee_snapshot. Release debits once; confirmation requires payee receipt, no second debit. Released payments cannot be cancelled.'
+}
+
+Table financial_commands {
+  id "bigint unsigned" [pk, increment]
+  actor_id "bigint unsigned" [not null]
+  operation varchar(48) [not null]
+  idempotency_key varchar(100) [not null]
+  request_hash char(64) [not null]
+  result_reference json [not null]
+  completed_at datetime(6) [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (actor_id, operation, idempotency_key) [unique]
+  }
+}
+
+Table ledger_events {
+  id "bigint unsigned" [pk, increment]
+  fund_id "bigint unsigned" [not null]
+  award_id "bigint unsigned" [null]
+  contribution_id "bigint unsigned" [null, unique]
+  disbursement_id "bigint unsigned" [null, unique]
+  kind varchar(32) [not null]
+  amount "bigint unsigned" [not null]
+  cash_delta bigint [not null]
+  reserved_delta bigint [not null]
+  source_event_key varchar(160) [not null, unique]
+  command_id "bigint unsigned" [not null]
+  actor_id "bigint unsigned" [not null]
+  occurred_at datetime(6) [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (fund_id, occurred_at, id)
+    (award_id, id)
+  }
+  Note: 'Append-only. Receipt: +cash/0 reserved; commitment: 0/+reserved; release: -cash/-reserved; commitment_release: 0/-reserved. Positive amount; enforce source combinations and deltas. No refund events until approved.'
+}
+
+Table benchmark_evaluations {
+  id "bigint unsigned" [pk, increment]
+  award_id "bigint unsigned" [not null]
+  academic_version_id "bigint unsigned" [not null]
+  rule_id "bigint unsigned" [not null]
+  engine_version varchar(40) [not null]
+  evaluated_at datetime(6) [not null]
+  outcome varchar(24) [not null]
+  input_snapshot json [not null]
+  checks json [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (award_id, academic_version_id, rule_id, engine_version) [unique]
+  }
+  Note: 'Pass/breach. Use Admin-verified values only; compare without rounding.'
+}
+
+Table academic_flags {
+  id "bigint unsigned" [pk, increment]
+  award_id "bigint unsigned" [not null]
+  evaluation_id "bigint unsigned" [null]
+  period_id "bigint unsigned" [null]
+  kind varchar(32) [not null]
+  blocks_release boolean [not null]
+  status varchar(24) [not null]
+  source_key varchar(160) [not null, unique]
+  resolved_by "bigint unsigned" [null]
+  resolved_at datetime(6) [null]
+  resolution varchar(24) [null]
+  reason text [null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  Note: 'Benchmark breach/enrolment change/overdue result. Open blocking flags prevent release. Overdue alone does not block.'
+}
+
+Table documents {
+  id "bigint unsigned" [pk, increment]
+  owner_id "bigint unsigned" [not null]
+  uploaded_by "bigint unsigned" [not null]
+  storage_disk varchar(40) [not null]
+  object_key varchar(500) [not null]
+  original_name varchar(255) [not null]
+  mime_type varchar(100) [not null]
+  size_bytes "bigint unsigned" [not null]
+  sha256 char(64) [not null]
+  scan_status varchar(24) [not null, default: 'pending']
+  scanned_at datetime(6) [null]
+  created_at datetime(6) [not null]
+  indexes {
+    (storage_disk, object_key) [unique]
+  }
+  Note: 'Private storage. Immutable file bytes; mutable scan metadata. Scan pending/clean/rejected/error. A clean scan is not verification of authenticity.'
+}
+
+Table application_documents {
+  application_version_id "bigint unsigned" [not null]
+  document_id "bigint unsigned" [not null]
+  linked_by "bigint unsigned" [not null]
+  purpose varchar(40) [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (application_version_id, document_id, purpose) [pk]
+  }
+  Note: 'Append-only evidence link; purpose is specific to the linked record.'
+}
+
+Table assessment_documents {
+  assessment_id "bigint unsigned" [not null]
+  document_id "bigint unsigned" [not null]
+  linked_by "bigint unsigned" [not null]
+  indicator_code varchar(40) [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (assessment_id, document_id, indicator_code) [pk]
+  }
+  Note: 'Append-only evidence link; purpose is specific to the linked record.'
+}
+
+Table result_documents {
+  academic_version_id "bigint unsigned" [not null]
+  document_id "bigint unsigned" [not null]
+  linked_by "bigint unsigned" [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (academic_version_id, document_id) [pk]
+  }
+  Note: 'Append-only evidence link; purpose is specific to the linked record.'
+}
+
+Table contribution_documents {
+  contribution_id "bigint unsigned" [not null]
+  document_id "bigint unsigned" [not null]
+  linked_by "bigint unsigned" [not null]
+  purpose varchar(40) [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (contribution_id, document_id, purpose) [pk]
+  }
+  Note: 'Append-only evidence link; purpose is specific to the linked record.'
+}
+
+Table disbursement_documents {
+  disbursement_id "bigint unsigned" [not null]
+  document_id "bigint unsigned" [not null]
+  linked_by "bigint unsigned" [not null]
+  purpose varchar(40) [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (disbursement_id, document_id, purpose) [pk]
+  }
+  Note: 'Append-only evidence link; purpose is specific to the linked record.'
+}
+
+Table enrolment_events {
+  id "bigint unsigned" [pk, increment]
+  student_id "bigint unsigned" [not null]
+  actor_id "bigint unsigned" [not null]
+  evidence_id "bigint unsigned" [null]
+  from_status varchar(24) [not null]
+  to_status varchar(24) [not null]
+  effective_at datetime(6) [not null]
+  reason text [not null]
+  created_at datetime(6) [not null]
+}
+
+Table consent_events {
+  id "bigint unsigned" [pk, increment]
+  user_id "bigint unsigned" [not null]
+  notice_version varchar(40) [not null]
+  action varchar(24) [not null]
+  scope varchar(100) [not null]
+  occurred_at datetime(6) [not null]
+  created_at datetime(6) [not null]
+  Note: 'Granted/withdrawn. Withdrawal starts review; does not erase financial history.'
+}
+
+Table audit_events {
+  id "bigint unsigned" [pk, increment]
+  actor_id "bigint unsigned" [null]
+  action varchar(100) [not null]
+  outcome varchar(24) [not null]
+  subject_type varchar(80) [not null]
+  subject_id "bigint unsigned" [null]
+  request_id varchar(100) [null]
+  reason text [null]
+  changes json [not null]
+  occurred_at datetime(6) [not null]
+  created_at datetime(6) [not null]
+  indexes {
+    (subject_type, subject_id, occurred_at)
+    (actor_id, occurred_at)
+  }
+  Note: 'Append-only. subject_id is a logical polymorphic link. Sanitize changes; no passwords, bank details or raw evidence.'
+}
+
+Table outbox_events {
+  id "bigint unsigned" [pk, increment]
+  event_key varchar(160) [not null, unique]
+  event_type varchar(80) [not null]
+  payload json [not null]
+  available_at datetime(6) [not null]
+  processed_at datetime(6) [null]
+  locked_until datetime(6) [null]
+  attempts "int unsigned" [not null, default: 0]
+  last_error text [null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+}
+
+Table notifications {
+  id "bigint unsigned" [pk, increment]
+  user_id "bigint unsigned" [not null]
+  event_key varchar(160) [not null]
+  kind varchar(80) [not null]
+  payload json [not null]
+  read_at datetime(6) [null]
+  created_at datetime(6) [not null]
+  updated_at datetime(6) [not null]
+  indexes {
+    (user_id, event_key) [unique]
+  }
+  Note: 'Custom domain notifications, not Laravel polymorphic notification migration. Payload must be role-safe.'
+}
+
+Table donor_beneficiary_refs {
+  id "bigint unsigned" [pk, increment]
+  fund_id "bigint unsigned" [not null]
+  student_id "bigint unsigned" [not null]
+  code char(26) [not null, unique]
+  created_at datetime(6) [not null]
+  indexes {
+    (fund_id, student_id) [unique]
+  }
+  Note: 'Opaque donor-facing reference. Query authorization and suppression of identifying combinations still required.'
+}
+
+
+// Explicit physical foreign keys
+Ref: programmes.institution_id > institutions.id [delete: restrict, update: restrict]
+Ref: academic_periods.institution_id > institutions.id [delete: restrict, update: restrict]
+Ref: users.id - student_profiles.user_id [delete: restrict, update: restrict]
+Ref: student_profiles.institution_id >? institutions.id [delete: restrict, update: restrict]
+Ref: student_profiles.programme_id >? programmes.id [delete: restrict, update: restrict]
+Ref: student_profiles.origin_lga_id >? local_governments.id [delete: restrict, update: restrict]
+Ref: users.id - donor_profiles.user_id [delete: restrict, update: restrict]
+Ref: donor_profiles.reviewed_by >? users.id [delete: restrict, update: restrict]
+Ref: model_has_roles.role_id > roles.id [delete: restrict, update: restrict]
+Ref: model_has_permissions.permission_id > permissions.id [delete: restrict, update: restrict]
+Ref: role_has_permissions.permission_id > permissions.id [delete: restrict, update: restrict]
+Ref: role_has_permissions.role_id > roles.id [delete: restrict, update: restrict]
+Ref: applications.student_id > student_profiles.id [delete: restrict, update: restrict]
+Ref: applications.id - application_drafts.application_id [delete: restrict, update: restrict]
+Ref: application_versions.application_id > applications.id [delete: restrict, update: restrict]
+Ref: application_versions.programme_id > programmes.id [delete: restrict, update: restrict]
+Ref: application_versions.origin_lga_id > local_governments.id [delete: restrict, update: restrict]
+Ref: application_versions.education_period_id > academic_periods.id [delete: restrict, update: restrict]
+Ref: application_reviews.application_version_id > application_versions.id [delete: restrict, update: restrict]
+Ref: application_reviews.reviewer_id > users.id [delete: restrict, update: restrict]
+Ref: case_assignments.application_id > applications.id [delete: restrict, update: restrict]
+Ref: case_assignments.admin_id > users.id [delete: restrict, update: restrict]
+Ref: case_assignments.assigned_by > users.id [delete: restrict, update: restrict]
+Ref: scoring_policies.created_by > users.id [delete: restrict, update: restrict]
+Ref: need_assessments.application_version_id > application_versions.id [delete: restrict, update: restrict]
+Ref: need_assessments.policy_id > scoring_policies.id [delete: restrict, update: restrict]
+Ref: need_assessments.assessor_id > users.id [delete: restrict, update: restrict]
+Ref: funds.donor_id > donor_profiles.id [delete: restrict, update: restrict]
+Ref: fund_rule_versions.fund_id > funds.id [delete: restrict, update: restrict]
+Ref: fund_rule_versions.created_by > users.id [delete: restrict, update: restrict]
+Ref: rule_institutions.rule_id > fund_rule_versions.id [delete: restrict, update: restrict]
+Ref: rule_institutions.institution_id > institutions.id [delete: restrict, update: restrict]
+Ref: rule_programmes.rule_id > fund_rule_versions.id [delete: restrict, update: restrict]
+Ref: rule_programmes.programme_id > programmes.id [delete: restrict, update: restrict]
+Ref: rule_levels.rule_id > fund_rule_versions.id [delete: restrict, update: restrict]
+Ref: rule_origin_lgas.rule_id > fund_rule_versions.id [delete: restrict, update: restrict]
+Ref: rule_origin_lgas.lga_id > local_governments.id [delete: restrict, update: restrict]
+Ref: rule_categories.rule_id > fund_rule_versions.id [delete: restrict, update: restrict]
+Ref: academic_records.student_id > student_profiles.id [delete: restrict, update: restrict]
+Ref: academic_records.period_id > academic_periods.id [delete: restrict, update: restrict]
+Ref: academic_versions.academic_record_id > academic_records.id [delete: restrict, update: restrict]
+Ref: academic_versions.submitted_by > users.id [delete: restrict, update: restrict]
+Ref: academic_versions.verified_by >? users.id [delete: restrict, update: restrict]
+Ref: match_evaluations.application_version_id > application_versions.id [delete: restrict, update: restrict]
+Ref: match_evaluations.assessment_id > need_assessments.id [delete: restrict, update: restrict]
+Ref: match_evaluations.rule_id > fund_rule_versions.id [delete: restrict, update: restrict]
+Ref: match_evaluations.academic_version_id >? academic_versions.id [delete: restrict, update: restrict]
+Ref: match_evaluations.evaluated_by > users.id [delete: restrict, update: restrict]
+Ref: awards.student_id > student_profiles.id [delete: restrict, update: restrict]
+Ref: awards.fund_id > funds.id [delete: restrict, update: restrict]
+Ref: awards.match_id > match_evaluations.id [delete: restrict, update: restrict]
+Ref: awards.awarded_by > users.id [delete: restrict, update: restrict]
+Ref: student_profiles.id - active_award_slots.student_id [delete: restrict, update: restrict]
+Ref: active_award_slots.(award_id, student_id) > awards.(id, student_id) [delete: restrict, update: restrict]
+Ref: award_decisions.award_id > awards.id [delete: restrict, update: restrict]
+Ref: award_decisions.actor_id > users.id [delete: restrict, update: restrict]
+Ref: contributions.fund_id > funds.id [delete: restrict, update: restrict]
+Ref: contributions.reported_by > users.id [delete: restrict, update: restrict]
+Ref: contributions.verified_by >? users.id [delete: restrict, update: restrict]
+Ref: payees.institution_id >? institutions.id [delete: restrict, update: restrict]
+Ref: payees.verified_by >? users.id [delete: restrict, update: restrict]
+Ref: disbursements.award_id > awards.id [delete: restrict, update: restrict]
+Ref: disbursements.payee_id > payees.id [delete: restrict, update: restrict]
+Ref: disbursements.recorded_by > users.id [delete: restrict, update: restrict]
+Ref: disbursements.released_by >? users.id [delete: restrict, update: restrict]
+Ref: disbursements.confirmed_by >? users.id [delete: restrict, update: restrict]
+Ref: financial_commands.actor_id > users.id [delete: restrict, update: restrict]
+Ref: ledger_events.fund_id > funds.id [delete: restrict, update: restrict]
+Ref: ledger_events.award_id >? awards.id [delete: restrict, update: restrict]
+Ref: contributions.id ?- ledger_events.contribution_id [delete: restrict, update: restrict]
+Ref: disbursements.id ?- ledger_events.disbursement_id [delete: restrict, update: restrict]
+Ref: ledger_events.command_id > financial_commands.id [delete: restrict, update: restrict]
+Ref: ledger_events.actor_id > users.id [delete: restrict, update: restrict]
+Ref: benchmark_evaluations.award_id > awards.id [delete: restrict, update: restrict]
+Ref: benchmark_evaluations.academic_version_id > academic_versions.id [delete: restrict, update: restrict]
+Ref: benchmark_evaluations.rule_id > fund_rule_versions.id [delete: restrict, update: restrict]
+Ref: academic_flags.award_id > awards.id [delete: restrict, update: restrict]
+Ref: academic_flags.evaluation_id >? benchmark_evaluations.id [delete: restrict, update: restrict]
+Ref: academic_flags.period_id >? academic_periods.id [delete: restrict, update: restrict]
+Ref: academic_flags.resolved_by >? users.id [delete: restrict, update: restrict]
+Ref: documents.owner_id > users.id [delete: restrict, update: restrict]
+Ref: documents.uploaded_by > users.id [delete: restrict, update: restrict]
+Ref: application_documents.application_version_id > application_versions.id [delete: restrict, update: restrict]
+Ref: application_documents.document_id > documents.id [delete: restrict, update: restrict]
+Ref: application_documents.linked_by > users.id [delete: restrict, update: restrict]
+Ref: assessment_documents.assessment_id > need_assessments.id [delete: restrict, update: restrict]
+Ref: assessment_documents.document_id > documents.id [delete: restrict, update: restrict]
+Ref: assessment_documents.linked_by > users.id [delete: restrict, update: restrict]
+Ref: result_documents.academic_version_id > academic_versions.id [delete: restrict, update: restrict]
+Ref: result_documents.document_id > documents.id [delete: restrict, update: restrict]
+Ref: result_documents.linked_by > users.id [delete: restrict, update: restrict]
+Ref: contribution_documents.contribution_id > contributions.id [delete: restrict, update: restrict]
+Ref: contribution_documents.document_id > documents.id [delete: restrict, update: restrict]
+Ref: contribution_documents.linked_by > users.id [delete: restrict, update: restrict]
+Ref: disbursement_documents.disbursement_id > disbursements.id [delete: restrict, update: restrict]
+Ref: disbursement_documents.document_id > documents.id [delete: restrict, update: restrict]
+Ref: disbursement_documents.linked_by > users.id [delete: restrict, update: restrict]
+Ref: enrolment_events.student_id > student_profiles.id [delete: restrict, update: restrict]
+Ref: enrolment_events.actor_id > users.id [delete: restrict, update: restrict]
+Ref: enrolment_events.evidence_id >? documents.id [delete: restrict, update: restrict]
+Ref: consent_events.user_id > users.id [delete: restrict, update: restrict]
+Ref: audit_events.actor_id >? users.id [delete: restrict, update: restrict]
+Ref: notifications.user_id > users.id [delete: restrict, update: restrict]
+Ref: donor_beneficiary_refs.fund_id > funds.id [delete: restrict, update: restrict]
+Ref: donor_beneficiary_refs.student_id > student_profiles.id [delete: restrict, update: restrict]
+TableGroup Identity {
+  users
+  student_profiles
+  donor_profiles
+}
+TableGroup Reference_data {
+  institutions
+  programmes
+  local_governments
+  academic_periods
+}
+TableGroup Spatie_permissions {
+  roles
+  permissions
+  model_has_roles
+  model_has_permissions
+  role_has_permissions
+}
+TableGroup Applications {
+  applications
+  application_drafts
+  application_versions
+  application_reviews
+  case_assignments
+}
+TableGroup Scoring {
+  scoring_policies
+  need_assessments
+}
+TableGroup Funds_and_rules {
+  funds
+  fund_rule_versions
+  rule_institutions
+  rule_programmes
+  rule_levels
+  rule_origin_lgas
+  rule_categories
+}
+TableGroup Academics {
+  academic_records
+  academic_versions
+  benchmark_evaluations
+  academic_flags
+  enrolment_events
+}
+TableGroup Awards {
+  match_evaluations
+  awards
+  active_award_slots
+  award_decisions
+}
+TableGroup Finance {
+  contributions
+  payees
+  disbursements
+  financial_commands
+  ledger_events
+}
+TableGroup Evidence {
+  documents
+  application_documents
+  assessment_documents
+  result_documents
+  contribution_documents
+  disbursement_documents
+}
+TableGroup Operations {
+  consent_events
+  audit_events
+  outbox_events
+  notifications
+  donor_beneficiary_refs
+}
