@@ -34,7 +34,7 @@
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-        <?php echo app('Illuminate\Foundation\Vite')->fonts(); ?>
+        <!-- <?php echo app('Illuminate\Foundation\Vite')->fonts(); ?> -->
 
         <?php echo app('Illuminate\Foundation\Vite')->reactRefresh(); ?>
         <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"]); ?>
