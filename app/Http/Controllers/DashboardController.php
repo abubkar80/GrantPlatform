@@ -1,0 +1,77 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use App\Support\PrimaryRole;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response;
+
+/** One /dashboard URL; what each role sees is decided here, on the server. */
+class DashboardController
+{
+    public function __invoke(Request $request): Response
+    {
+        $user = $request->user();
+        $role = PrimaryRole::of($user);
+
+        return Inertia::render('dashboard', [
+            'role' => $role,
+            'summary' => match ($role) {
+                'student' => $this->student($user),
+                'donor' => $this->donor($user),
+                'admin' => $this->admin(),
+                'super_admin' => $this->superAdmin(),
+                default => [],
+            },
+        ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function student(User $user): array
+    {
+        $profile = DB::table('student_profiles')->where('user_id', $user->id)->first();
+
+        return [
+            'enrolment_status' => $profile?->enrolment_status ?? 'pending',
+            'applications' => $profile
+                ? DB::table('applications')->where('student_id', $profile->id)->count()
+                : 0,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function donor(User $user): array
+    {
+        $profile = DB::table('donor_profiles')->where('user_id', $user->id)->first();
+
+        return [
+            'approval_status' => $profile?->approval_status ?? 'pending',
+            'review_reason' => $profile?->review_reason,
+            'funds' => $profile
+                ? DB::table('funds')->where('donor_id', $profile->id)->count()
+                : 0,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function admin(): array
+    {
+        return [
+            'pending_donors' => DB::table('donor_profiles')->where('approval_status', 'pending')->count(),
+            'awaiting_review' => DB::table('applications')->where('status', 'submitted')->count(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function superAdmin(): array
+    {
+        return [
+            'admins' => User::role('admin')->count(),
+            'students' => User::role('student')->count(),
+            'donors' => User::role('donor')->count(),
+        ];
+    }
+}

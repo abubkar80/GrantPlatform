@@ -9,6 +9,9 @@ export type User = {
     [key: string]: unknown;
 };
 
+export type Role = 'student' | 'donor' | 'admin' | 'super_admin' | 'none';
+
 export type Auth = {
     user: User;
+    role: Role;
 };
