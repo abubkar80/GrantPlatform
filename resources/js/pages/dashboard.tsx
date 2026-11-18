@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -25,13 +25,17 @@ function Stat({
     title,
     value,
     hint,
+    href,
 }: {
     title: string;
     value: string | number;
     hint?: string;
+    href?: string;
 }) {
-    return (
-        <Card>
+    const card = (
+        <Card
+            className={href ? 'transition-colors hover:bg-accent' : undefined}
+        >
             <CardHeader>
                 <CardDescription>{title}</CardDescription>
                 <CardTitle className="text-3xl capitalize">{value}</CardTitle>
@@ -43,6 +47,8 @@ function Stat({
             )}
         </Card>
     );
+
+    return href ? <Link href={href}>{card}</Link> : card;
 }
 
 function StudentView({ summary }: { summary: Summary }) {
@@ -70,10 +76,18 @@ function StudentView({ summary }: { summary: Summary }) {
                 </CardHeader>
                 <CardContent>
                     <ol className="list-decimal space-y-1 pl-5 text-sm">
-                        <li>Complete your profile (institution, programme, level).</li>
+                        <li>
+                            Complete your profile (institution, programme,
+                            level).
+                        </li>
                         <li>Upload your latest semester result.</li>
-                        <li>Submit your application with supporting evidence.</li>
-                        <li>An Admin reviews it and you are notified of the decision.</li>
+                        <li>
+                            Submit your application with supporting evidence.
+                        </li>
+                        <li>
+                            An Admin reviews it and you are notified of the
+                            decision.
+                        </li>
                     </ol>
                 </CardContent>
             </Card>
@@ -127,6 +141,7 @@ function AdminView({ summary }: { summary: Summary }) {
                 title="Donors awaiting approval"
                 value={Number(summary.pending_donors)}
                 hint="Only verified donors can pay into a fund."
+                href="/admin/donors"
             />
             <Stat
                 title="Applications to review"

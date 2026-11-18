@@ -50,6 +50,8 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::findOrCreate($name, 'web');
         }
 
+        // WithoutModelEvents (used by DatabaseSeeder) stops Spatie clearing its cache itself,
+        // so clear it here before roles look the new permissions up.
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         foreach ($matrix as $role => $permissions) {

@@ -1,5 +1,5 @@
-import { Link } from '@inertiajs/react';
-import { LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { LayoutGrid, UserCheck } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -15,15 +15,33 @@ import {
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+const dashboardItem: NavItem = {
+    title: 'Dashboard',
+    href: dashboard(),
+    icon: LayoutGrid,
+};
+
+/** Navigation per role. Add a page here only once its route exists. */
+function navFor(role: string): NavItem[] {
+    switch (role) {
+        case 'admin':
+            return [
+                dashboardItem,
+                {
+                    title: 'Donor approvals',
+                    href: '/admin/donors',
+                    icon: UserCheck,
+                },
+            ];
+        default:
+            return [dashboardItem];
+    }
+}
 
 export function AppSidebar() {
+    const { auth } = usePage().props;
+    const mainNavItems = navFor(auth.role);
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>

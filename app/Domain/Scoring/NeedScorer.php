@@ -16,7 +16,7 @@ final class NeedScorer
 
     public function score(NeedInputs $in, ?ScoringPolicy $policy = null): NeedResult
     {
-        $policy ??= new ScoringPolicy();
+        $policy ??= new ScoringPolicy;
 
         foreach ([$in->monthlyIncome, $in->tuition, $in->priorArrears, $in->dependants] as $number) {
             if ($number !== null && $number < 0) {

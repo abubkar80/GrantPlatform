@@ -12,7 +12,11 @@ import { store } from '@/routes/register';
 
 const accountTypes = [
     { value: 'student', label: 'Student', hint: 'Apply for education support' },
-    { value: 'donor', label: 'Donor', hint: 'Fund students (needs Admin approval)' },
+    {
+        value: 'donor',
+        label: 'Donor',
+        hint: 'Fund students (needs Admin approval)',
+    },
 ];
 
 export default function Register() {
@@ -42,7 +46,9 @@ export default function Register() {
                                                 type="radio"
                                                 name="account_type"
                                                 value={type.value}
-                                                defaultChecked={type.value === 'student'}
+                                                defaultChecked={
+                                                    type.value === 'student'
+                                                }
                                                 className="accent-primary"
                                                 tabIndex={1}
                                             />
@@ -111,15 +117,25 @@ export default function Register() {
                                 autoComplete="new-password"
                                 placeholder="Confirm password"
                             />
-                            <InputError message={errors.password_confirmation} />
+                            <InputError
+                                message={errors.password_confirmation}
+                            />
                         </div>
 
                         <div className="grid gap-2">
                             <div className="flex items-start space-x-3">
-                                <Checkbox id="consent" name="consent" tabIndex={6} />
-                                <Label htmlFor="consent" className="leading-snug">
-                                    I consent to HCM Foundation using my information
-                                    to assess applications and administer funding.
+                                <Checkbox
+                                    id="consent"
+                                    name="consent"
+                                    tabIndex={6}
+                                />
+                                <Label
+                                    htmlFor="consent"
+                                    className="leading-snug"
+                                >
+                                    I consent to HCM Foundation using my
+                                    information to assess applications and
+                                    administer funding.
                                 </Label>
                             </div>
                             <InputError message={errors.consent} />

@@ -22,7 +22,7 @@ function needInputs(array $overrides = []): NeedInputs
 
 function scoreOf(array $overrides = [], ?ScoringPolicy $policy = null)
 {
-    return (new NeedScorer())->score(needInputs($overrides), $policy);
+    return (new NeedScorer)->score(needInputs($overrides), $policy);
 }
 
 it('scores monthly income at the band edges', function (int $naira, int $expected) {

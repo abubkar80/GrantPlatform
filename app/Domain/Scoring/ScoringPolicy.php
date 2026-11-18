@@ -11,6 +11,5 @@ final readonly class ScoringPolicy
         public string $version = 'demo-1',
         public int $minimumScore = 35,
         public int $highMinimum = 60,
-    ) {
-    }
+    ) {}
 }

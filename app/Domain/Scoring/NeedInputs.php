@@ -20,6 +20,5 @@ final readonly class NeedInputs
         public ?bool $singleParent,
         public ?bool $disability,
         public ?string $riskLevel, // 'high' | 'medium' | 'low' | null (Pending)
-    ) {
-    }
+    ) {}
 }
