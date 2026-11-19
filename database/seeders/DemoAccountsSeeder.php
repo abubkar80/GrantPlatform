@@ -20,30 +20,19 @@ class DemoAccountsSeeder extends Seeder
             return;
         }
 
-        $accounts = [
-            'super_admin' => ['superadmin@grantplatform.test', 'Demo Super Admin'],
-            'admin' => ['admin@grantplatform.test', 'Demo Admin'],
-            'donor' => ['donor@grantplatform.test', 'Demo Foundation'],
-            'student' => ['student@grantplatform.test', 'Demo Student'],
-        ];
-
-        $users = [];
-        foreach ($accounts as $role => [$email, $name]) {
-            $users[$role] = User::updateOrCreate(
-                ['email' => $email],
-                ['name' => $name, 'password' => self::PASSWORD],
-            );
-            $users[$role]->syncRoles([$role]);
-        }
+        $this->account('super_admin', 'superadmin@grantplatform.test', 'Demo Super Admin');
+        $admin = $this->account('admin', 'admin@grantplatform.test', 'Demo Admin');
+        $donor = $this->account('donor', 'donor@grantplatform.test', 'Demo Foundation');
+        $student = $this->account('student', 'student@grantplatform.test', 'Demo Student');
 
         $now = now();
 
         DB::table('donor_profiles')->updateOrInsert(
-            ['user_id' => $users['donor']->id],
+            ['user_id' => $donor->id],
             [
                 'display_name' => 'Demo Foundation',
                 'approval_status' => 'approved',
-                'reviewed_by' => $users['admin']->id,
+                'reviewed_by' => $admin->id,
                 'reviewed_at' => $now,
                 'review_reason' => 'Seeded demo account',
                 'created_at' => $now,
@@ -52,8 +41,19 @@ class DemoAccountsSeeder extends Seeder
         );
 
         DB::table('student_profiles')->updateOrInsert(
-            ['user_id' => $users['student']->id],
+            ['user_id' => $student->id],
             ['created_at' => $now, 'updated_at' => $now],
         );
+    }
+
+    private function account(string $role, string $email, string $name): User
+    {
+        $user = User::updateOrCreate(
+            ['email' => $email],
+            ['name' => $name, 'password' => self::PASSWORD],
+        );
+        $user->syncRoles([$role]);
+
+        return $user;
     }
 }

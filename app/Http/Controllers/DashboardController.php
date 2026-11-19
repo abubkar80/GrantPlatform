@@ -32,27 +32,29 @@ class DashboardController
     /** @return array<string, mixed> */
     private function student(User $user): array
     {
-        $profile = DB::table('student_profiles')->where('user_id', $user->id)->first();
-
         return [
-            'enrolment_status' => $profile?->enrolment_status ?? 'pending',
-            'applications' => $profile
-                ? DB::table('applications')->where('student_id', $profile->id)->count()
-                : 0,
+            'enrolment_status' => DB::table('student_profiles')
+                ->where('user_id', $user->id)
+                ->value('enrolment_status') ?? 'pending',
+            'applications' => DB::table('applications')
+                ->whereIn('student_id', DB::table('student_profiles')->where('user_id', $user->id)->select('id'))
+                ->count(),
         ];
     }
 
     /** @return array<string, mixed> */
     private function donor(User $user): array
     {
-        $profile = DB::table('donor_profiles')->where('user_id', $user->id)->first();
-
         return [
-            'approval_status' => $profile?->approval_status ?? 'pending',
-            'review_reason' => $profile?->review_reason,
-            'funds' => $profile
-                ? DB::table('funds')->where('donor_id', $profile->id)->count()
-                : 0,
+            'approval_status' => DB::table('donor_profiles')
+                ->where('user_id', $user->id)
+                ->value('approval_status') ?? 'pending',
+            'review_reason' => DB::table('donor_profiles')
+                ->where('user_id', $user->id)
+                ->value('review_reason'),
+            'funds' => DB::table('funds')
+                ->whereIn('donor_id', DB::table('donor_profiles')->where('user_id', $user->id)->select('id'))
+                ->count(),
         ];
     }
 
