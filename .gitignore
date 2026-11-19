@@ -11,3 +11,13 @@
 /.phpunit.result.cache
 *.log
 .DS_Store
+
+.vscode/
+
+/resources/js/actions/
+/resources/js/routes/
+/resources/js/wayfinder/
+
+/resources/js/actions/
+/resources/js/routes/
+/resources/js/wayfinder/
