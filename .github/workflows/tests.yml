@@ -47,6 +47,7 @@ jobs:
           php-version: '8.5'
           tools: composer:v2
           coverage: none
+          ini-values: memory_limit=1G
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
