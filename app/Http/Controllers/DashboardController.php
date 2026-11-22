@@ -36,9 +36,15 @@ class DashboardController
             'enrolment_status' => DB::table('student_profiles')
                 ->where('user_id', $user->id)
                 ->value('enrolment_status') ?? 'pending',
+            // A draft is work in progress, not an application: only submitted ones are counted.
             'applications' => DB::table('applications')
                 ->whereIn('student_id', DB::table('student_profiles')->where('user_id', $user->id)->select('id'))
+                ->where('status', '!=', 'draft')
                 ->count(),
+            'application_status' => DB::table('applications')
+                ->whereIn('student_id', DB::table('student_profiles')->where('user_id', $user->id)->select('id'))
+                ->latest('id')
+                ->value('status'),
         ];
     }
 
