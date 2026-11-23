@@ -206,6 +206,7 @@ function AdminView({ summary }: { summary: Summary }) {
                 title="Applications to review"
                 value={Number(summary.awaiting_review)}
                 hint="Submitted and waiting for an Admin decision."
+                href="/admin/applications"
             />
         </div>
     );

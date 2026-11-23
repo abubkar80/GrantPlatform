@@ -1,45 +1,49 @@
-# Progress tracker (deadline: 20 Nov 2026)
+# Progress tracker
 
-Update the checkboxes as you go; commit this file with each milestone.
+Last updated: 22 November 2026. Tick items as they land on `main`.
 
-## 1. Foundation (11-12 Nov)
+## Foundation
+- [x] MySQL, Laravel 13 React starter kit, Spatie roles and permissions
+- [x] 46 domain migrations from the DBML schema (MySQL, with foreign keys and unique constraints)
+- [x] CI: Pint, PHPStan, TypeScript, frontend lint/format and tests on MySQL
+- [x] Brand theme (orange, yellow, slate) and role-based navigation
 
-- [ ] MySQL installed; database `grant_platform` and dedicated user created
-- [ ] Starter kit generated in a temp folder and copied into the repo (feature branch)
-- [ ] `composer require spatie/laravel-permission` + published migration
-- [ ] Domain migrations copied in; `php artisan migrate:fresh` succeeds on MySQL
-- [ ] `npm run build` and `php artisan test` pass
+## Identity and access
+- [x] Four roles and permission matrix; Super Admin has no approval, matching or payment authority
+- [x] Registration limited to Student and Donor, with recorded consent
+- [x] Donor approval by an Admin (approve, or decline with reason), audited, notification written
+- [x] Role dashboards with summary cards and icons
 
-## 2. Identity and applications (13-14 Nov)
+## Students and applications
+- [x] Student profile with institution, programme, level and origin LGA
+- [x] Application draft, private evidence upload, submit as an immutable version (money in kobo)
+- [x] Resubmit after "needs information" (creates the next version)
 
-- [ ] Four roles + permissions seeder; public registration cannot create Admin/Super Admin
-- [ ] Donor approval separate from login
-- [ ] Student profile, application draft/submit, private evidence upload
-- [ ] Admin review (approve / decline / needs information)
-- [ ] Versioned scoring service with boundary tests (35, 60, caps, missing inputs)
+## Admin review
+- [x] Applications queue, assigned review, secure evidence access (audited)
+- [x] Need assessment from verified evidence only (incomplete is never zero)
+- [x] Approve, decline, ask for more information; approval confirms enrolment
 
-## 3. Funds, matching, awards (15-16 Nov)
+## Funding (schema ready, not built)
+- [ ] Donor funds and versioned eligibility criteria
+- [ ] Contribution recording and Admin receipt verification
+- [ ] Matching with pass/fail explanations
+- [ ] Awards with atomic fund reservation and one active award per student
 
-- [ ] Funds + fund rule versions
-- [ ] Matching with explanations
-- [ ] Award creation: transaction + row locks + `active_award_slots`
+## Payments and ledger (schema ready, not built)
+- [ ] Disbursements: Scheduled, Released, Confirmed (release debits once)
+- [ ] Funds ledger and idempotent financial commands
+- [ ] Refunds and reversals (policy decision pending)
 
-## 4. Money (17 Nov)
+## Academic monitoring (schema ready, not built)
+- [ ] Semester results and Admin verification
+- [ ] Benchmark checks, flags and award suspension
 
-- [ ] Contribution verification -> ledger event
-- [ ] Disbursement Scheduled -> Released -> Confirmed (release debits once)
-- [ ] Anonymous donor dashboard
+## Oversight and reporting (not built)
+- [ ] Audit-log viewer and Super Admin account management
+- [ ] Anonymous donor dashboard and exports
+- [ ] In-app notifications screen, email, MFA, malware scanning
 
-## 5. Academics and oversight (18 Nov)
-
-- [ ] Semester result submit + Admin verify
-- [ ] Benchmark check, flags, suspension
-- [ ] Audit viewer; Super Admin access management
-
-## 6. Hardening (19 Nov)
-
-- [ ] Concurrency tests (double award, duplicate release)
-- [ ] Demo script and seeded demo data (3 funds)
-- [ ] Database backup tested
-
-Out of scope for the demo (label as future work): email delivery, MFA, malware scanning, refunds/reversals, case reassignment, CSV import.
+## Release
+- [x] README, setup guide and demo script
+- [ ] Final fresh-clone check on a clean machine

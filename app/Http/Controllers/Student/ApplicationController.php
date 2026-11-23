@@ -46,6 +46,7 @@ class ApplicationController
             'draft' => null,
             'documents' => [],
             'submitted' => null,
+            'review' => null,
             'purposes' => self::PURPOSES,
         ];
 
@@ -66,6 +67,11 @@ class ApplicationController
             } else {
                 $props['state'] = 'submitted';
                 $props = array_merge($props, $this->submittedView($application->id));
+                $props['review'] = DB::table('application_reviews as r')
+                    ->join('application_versions as v', 'v.id', '=', 'r.application_version_id')
+                    ->where('v.application_id', $application->id)
+                    ->orderByDesc('r.id')
+                    ->first(['r.outcome', 'r.reason', 'r.created_at']);
             }
         }
 
@@ -83,6 +89,63 @@ class ApplicationController
         $this->draftApplication($profile->id);
 
         return redirect('/student/application');
+    }
+
+    /** After an Admin asks for more information the student reopens the application as a new draft. */
+    public function reopen(Request $request): RedirectResponse
+    {
+        $profile = $this->profile($request->user());
+        $application = $profile === null
+            ? null
+            : DB::table('applications')->where('student_id', $profile->id)->where('status', 'needs_information')->first();
+
+        if ($application === null) {
+            return back()->with('error', 'There is nothing to update right now.');
+        }
+
+        DB::transaction(function () use ($application) {
+            $now = now();
+            $changed = DB::table('applications')->where('id', $application->id)->where('status', 'needs_information')->update([
+                'status' => 'draft',
+                'row_version' => DB::raw('row_version + 1'),
+                'updated_at' => $now,
+            ]);
+            $version = DB::table('application_versions')->where('application_id', $application->id)->orderByDesc('version_no')->first();
+
+            if ($changed === 0 || $version === null) {
+                return;
+            }
+
+            $documents = DB::table('application_documents as ad')
+                ->join('documents as d', 'd.id', '=', 'ad.document_id')
+                ->where('ad.application_version_id', $version->id)
+                ->get(['d.id', 'ad.purpose', 'd.original_name', 'd.size_bytes'])
+                ->map(fn ($d) => ['id' => (int) $d->id, 'purpose' => $d->purpose, 'name' => $d->original_name, 'size' => (int) $d->size_bytes])
+                ->all();
+
+            DB::table('application_drafts')->updateOrInsert(
+                ['application_id' => $application->id],
+                [
+                    'payload' => json_encode([
+                        'monthly_income' => intdiv((int) $version->monthly_income, 100),
+                        'tuition' => intdiv((int) $version->tuition, 100),
+                        'prior_arrears' => intdiv((int) $version->prior_arrears, 100),
+                        'external_aid' => (bool) $version->external_aid,
+                        'external_aid_amount' => $version->external_aid_amount === null ? null : intdiv((int) $version->external_aid_amount, 100),
+                        'dependants' => $version->dependants,
+                        'is_orphan' => (bool) $version->is_orphan,
+                        'single_parent' => (bool) $version->single_parent,
+                        'disability' => (bool) $version->disability,
+                        'result_availability' => $version->result_availability,
+                        'documents' => $documents,
+                    ], JSON_THROW_ON_ERROR),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            );
+        });
+
+        return redirect('/student/application')->with('status', 'You can now update your application and submit it again.');
     }
 
     public function saveDraft(Request $request): RedirectResponse

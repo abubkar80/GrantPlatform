@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ApplicationReviewController;
 use App\Http\Controllers\Admin\DonorApprovalController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Student\ApplicationController;
@@ -22,6 +23,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('application/documents/{document}', [ApplicationController::class, 'removeDocument'])
             ->whereNumber('document')->name('application.documents.destroy');
         Route::post('application/submit', [ApplicationController::class, 'submit'])->name('application.submit');
+        Route::post('application/reopen', [ApplicationController::class, 'reopen'])->name('application.reopen');
+    });
+
+    Route::middleware('can:application.review')->prefix('admin/applications')->name('admin.applications.')->group(function () {
+        Route::get('/', [ApplicationReviewController::class, 'index'])->name('index');
+        Route::get('{application}', [ApplicationReviewController::class, 'show'])->whereNumber('application')->name('show');
+        Route::post('{application}/start', [ApplicationReviewController::class, 'start'])->whereNumber('application')->name('start');
+        Route::post('{application}/assessment', [ApplicationReviewController::class, 'assess'])->whereNumber('application')->name('assess');
+        Route::post('{application}/decision', [ApplicationReviewController::class, 'decide'])
+            ->middleware('can:application.decide')->whereNumber('application')->name('decide');
+        Route::get('{application}/documents/{document}', [ApplicationReviewController::class, 'document'])
+            ->whereNumber(['application', 'document'])->name('documents.show');
     });
 
     Route::middleware('can:donor.approve')->prefix('admin/donors')->name('admin.donors.')->group(function () {

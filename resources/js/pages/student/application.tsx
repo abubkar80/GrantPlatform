@@ -46,6 +46,7 @@ type Props = {
         result_availability: string;
         declared_at: string;
     } | null;
+    review: { outcome: string; reason: string; created_at: string } | null;
     purposes: string[];
 };
 
@@ -122,6 +123,36 @@ function YesNo({
     );
 }
 
+function banner(status: string): { title: string; text: string } {
+    switch (status) {
+        case 'under_review':
+            return {
+                title: 'Your application is under review',
+                text: 'An Admin is checking your information and evidence. Your answers are locked while this happens.',
+            };
+        case 'needs_information':
+            return {
+                title: 'More information is needed',
+                text: 'An Admin asked for changes. Update your application and submit it again.',
+            };
+        case 'approved':
+            return {
+                title: 'Your application was approved',
+                text: 'Your enrolment is confirmed. Matching to a fund happens next, and you will be notified.',
+            };
+        case 'declined':
+            return {
+                title: 'Your application was not approved',
+                text: 'You can read the reason below.',
+            };
+        default:
+            return {
+                title: 'Application submitted successfully',
+                text: 'An HCM Foundation Admin will review it and you will be notified of the decision. Your answers are now locked.',
+            };
+    }
+}
+
 export default function StudentApplication(props: Props) {
     const {
         state,
@@ -130,6 +161,7 @@ export default function StudentApplication(props: Props) {
         draft,
         documents,
         submitted,
+        review,
         purposes,
     } = props;
 
@@ -171,9 +203,7 @@ export default function StudentApplication(props: Props) {
                     <Alert className="border-primary bg-accent">
                         <BadgeCheck aria-hidden="true" />
                         <AlertTitle>
-                            {application.status === 'submitted'
-                                ? 'Application submitted successfully'
-                                : `Application ${application.status.replaceAll('_', ' ')}`}
+                            {banner(application.status).title}
                         </AlertTitle>
                         <AlertDescription>
                             <p>
@@ -181,11 +211,30 @@ export default function StudentApplication(props: Props) {
                                 <strong>{application.reference}</strong>. Keep
                                 it for any enquiry.
                             </p>
-                            <p>
-                                {application.status === 'submitted'
-                                    ? 'An HCM Foundation Admin will review it and you will be notified of the decision. Your answers are now locked.'
-                                    : 'Your answers are locked while it is processed.'}
-                            </p>
+                            <p>{banner(application.status).text}</p>
+                            {review &&
+                                [
+                                    'approved',
+                                    'declined',
+                                    'needs_information',
+                                ].includes(application.status) && (
+                                    <p className="mt-1">
+                                        <strong>Note from the Admin:</strong>{' '}
+                                        {review.reason}
+                                    </p>
+                                )}
+                            {application.status === 'needs_information' && (
+                                <Button
+                                    className="mt-3"
+                                    onClick={() =>
+                                        router.post(
+                                            '/student/application/reopen',
+                                        )
+                                    }
+                                >
+                                    Update my application
+                                </Button>
+                            )}
                         </AlertDescription>
                     </Alert>
                 ) : (
