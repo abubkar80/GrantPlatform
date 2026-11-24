@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, UserCheck } from 'lucide-react';
+import { FileText, LayoutGrid, UserCheck, UserRound } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -31,6 +31,20 @@ function navFor(role: string): NavItem[] {
                     title: 'Donor approvals',
                     href: '/admin/donors',
                     icon: UserCheck,
+                },
+            ];
+        case 'student':
+            return [
+                dashboardItem,
+                {
+                    title: 'My profile',
+                    href: '/student/profile',
+                    icon: UserRound,
+                },
+                {
+                    title: 'My application',
+                    href: '/student/application',
+                    icon: FileText,
                 },
             ];
         default:

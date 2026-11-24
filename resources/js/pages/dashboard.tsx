@@ -1,6 +1,20 @@
 import { Head, Link, usePage } from '@inertiajs/react';
+import {
+    BadgeCheck,
+    ClipboardCheck,
+    ClipboardList,
+    Clock,
+    FileText,
+    GraduationCap,
+    HeartHandshake,
+    ShieldCheck,
+    UserCheck,
+    Wallet,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -26,19 +40,30 @@ function Stat({
     value,
     hint,
     href,
+    icon: Icon,
 }: {
     title: string;
     value: string | number;
     hint?: string;
     href?: string;
+    icon: LucideIcon;
 }) {
     const card = (
         <Card
             className={href ? 'transition-colors hover:bg-accent' : undefined}
         >
             <CardHeader>
-                <CardDescription>{title}</CardDescription>
-                <CardTitle className="text-3xl capitalize">{value}</CardTitle>
+                <div className="flex items-start justify-between gap-3">
+                    <div className="grid gap-1">
+                        <CardDescription>{title}</CardDescription>
+                        <CardTitle className="text-3xl capitalize">
+                            {value}
+                        </CardTitle>
+                    </div>
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                        <Icon className="size-5" aria-hidden="true" />
+                    </div>
+                </div>
             </CardHeader>
             {hint && (
                 <CardContent className="text-sm text-muted-foreground">
@@ -56,15 +81,44 @@ function StudentView({ summary }: { summary: Summary }) {
         <>
             <div className="grid gap-4 md:grid-cols-3">
                 <Stat
+                    icon={GraduationCap}
                     title="Enrolment status"
                     value={String(summary.enrolment_status)}
                     hint="Confirmed by an Admin after your application is reviewed."
                 />
                 <Stat
-                    title="Applications"
+                    icon={FileText}
+                    title="Applications submitted"
                     value={Number(summary.applications)}
-                    hint="Draft and submitted applications."
+                    hint="Drafts are not counted until you submit."
                 />
+                <Stat
+                    icon={ClipboardCheck}
+                    title="Application status"
+                    value={
+                        summary.application_status
+                            ? String(summary.application_status).replaceAll(
+                                  '_',
+                                  ' ',
+                              )
+                            : 'Not started'
+                    }
+                    hint="Where your application stands right now."
+                />
+            </div>
+            <div className="flex flex-wrap gap-3">
+                <Button asChild>
+                    <Link href="/student/application">
+                        {summary.application_status === 'draft'
+                            ? 'Continue my draft'
+                            : summary.application_status
+                              ? 'View my application'
+                              : 'Start my application'}
+                    </Link>
+                </Button>
+                <Button asChild variant="outline">
+                    <Link href="/student/profile">Complete my profile</Link>
+                </Button>
             </div>
             <Card>
                 <CardHeader>
@@ -103,6 +157,7 @@ function DonorView({ summary }: { summary: Summary }) {
 
         return (
             <Alert>
+                <Clock aria-hidden="true" />
                 <AlertTitle>
                     {declined
                         ? 'Your donor registration was not approved'
@@ -121,11 +176,13 @@ function DonorView({ summary }: { summary: Summary }) {
     return (
         <div className="grid gap-4 md:grid-cols-3">
             <Stat
+                icon={Wallet}
                 title="Your funds"
                 value={Number(summary.funds)}
                 hint="Funds you have set up with eligibility criteria."
             />
             <Stat
+                icon={BadgeCheck}
                 title="Registration"
                 value="Approved"
                 hint="You can create funds and contribute."
@@ -138,12 +195,14 @@ function AdminView({ summary }: { summary: Summary }) {
     return (
         <div className="grid gap-4 md:grid-cols-3">
             <Stat
+                icon={UserCheck}
                 title="Donors awaiting approval"
                 value={Number(summary.pending_donors)}
                 hint="Only verified donors can pay into a fund."
                 href="/admin/donors"
             />
             <Stat
+                icon={ClipboardList}
                 title="Applications to review"
                 value={Number(summary.awaiting_review)}
                 hint="Submitted and waiting for an Admin decision."
@@ -155,9 +214,21 @@ function AdminView({ summary }: { summary: Summary }) {
 function SuperAdminView({ summary }: { summary: Summary }) {
     return (
         <div className="grid gap-4 md:grid-cols-3">
-            <Stat title="Admin accounts" value={Number(summary.admins)} />
-            <Stat title="Students" value={Number(summary.students)} />
-            <Stat title="Donors" value={Number(summary.donors)} />
+            <Stat
+                icon={ShieldCheck}
+                title="Admin accounts"
+                value={Number(summary.admins)}
+            />
+            <Stat
+                icon={GraduationCap}
+                title="Students"
+                value={Number(summary.students)}
+            />
+            <Stat
+                icon={HeartHandshake}
+                title="Donors"
+                value={Number(summary.donors)}
+            />
         </div>
     );
 }
